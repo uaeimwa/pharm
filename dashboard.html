@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AMS System - Secure Stock Room</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="admin-body">
+
+    <nav class="navbar secure-nav">
+        <div class="nav-container">
+            <span class="logo">🔒 AMS <span>Admin Room</span></span>
+            <a href="index.html" class="exit-link">Logout & Exit Platform</a>
+        </div>
+    </nav>
+
+    <main class="container">
+        <div class="dashboard-layout">
+            
+            <!-- Entry Panel Form -->
+            <div class="form-card admin-card">
+                <h2>Import Live Stock</h2>
+                <form id="stock-form">
+                    <div class="form-group">
+                        <label>Item Display Title</label>
+                        <input type="text" id="prod-name" required placeholder="e.g., Hydrating Serum">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Price tag</label>
+                        <input type="text" id="prod-price" required placeholder="e.g., 2500 DA">
+                    </div>
+
+                    <!-- NEW: Local File Inputs -->
+                    <div class="form-group">
+                        <label>Primary Product Image (From Files)</label>
+                        <input type="file" id="prod-file1" accept="image/*" required onchange="previewImage(this, 'prev1')">
+                        <img id="prev1" class="file-preview-thumbnail" src="" alt="" style="display:none; max-width:80px; margin-top:8px; border-radius:4px;">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Secondary Product Image (Optional)</label>
+                        <input type="file" id="prod-file2" accept="image/*" onchange="previewImage(this, 'prev2')">
+                        <img id="prev2" class="file-preview-thumbnail" src="" alt="" style="display:none; max-width:80px; margin-top:8px; border-radius:4px;">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Detailed Specifications</label>
+                        <textarea id="prod-desc" rows="4" required placeholder="Type product features, instructions, ingredients..."></textarea>
+                    </div>
+
+                    <button type="submit" class="submit-btn teal-bg">Deploy Product to Store</button>
+                </form>
+            </div>
+
+            <!-- Monitoring Window List -->
+            <div class="inventory-card admin-card">
+                <h2>Warehouse Monitor Log</h2>
+                <ul id="inventory-list" class="inventory-list dark-list"></ul>
+            </div>
+
+        </div>
+    </main>
+
+    <script>
+    // 1. Connect to the shared database
+    const dbRequest = indexedDB.open("AMSPharmacyDB", 1);
+    let db;
+
+    dbRequest.onupgradeneeded = function(e) {
+        db = e.target.result;
+        if (!db.objectStoreNames.contains("inventory")) {
+            db.createObjectStore("inventory", { keyPath: "id", autoIncrement: true });
+        }
+    };
+
+    dbRequest.onsuccess = function(e) {
+        db = e.target.result;
+        renderAdminList();
+    };
+
+    const form = document.getElementById('stock-form');
+    const list = document.getElementById('inventory-list');
+
+    window.previewImage = function(input, previewId) {
+        const preview = document.getElementById(previewId);
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                preview.src = e.target.result;
+                preview.style.display = 'block';
+            }
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
+    function getBase64Text(fileInputId) {
+        return new Promise((resolve) => {
+            const input = document.getElementById(fileInputId);
+            if (!input || !input.files || !input.files[0]) {
+                resolve(null);
+                return;
+            }
+            const reader = new FileReader();
+            reader.readAsDataURL(input.files[0]);
+            reader.onload = e => resolve(e.target.result);
+            reader.onerror = () => resolve(null);
+        });
+    }
+
+    // 2. Display the current items stored
+    function renderAdminList() {
+        if (!db) return;
+        list.innerHTML = '';
+
+        const transaction = db.transaction(["inventory"], "readonly");
+        const store = transaction.objectStore("inventory");
+        
+        store.openCursor().onsuccess = function(event) {
+            const cursor = event.target.result;
+            if (cursor) {
+                const product = cursor.value;
+                const li = document.createElement('li');
+                li.className = "admin-item";
+                li.style.display = "flex";
+                li.style.justifyContent = "space-between";
+                li.style.alignItems = "center";
+                li.style.padding = "1rem 0";
+                li.style.borderBottom = "1px solid rgba(255,255,255,0.05)";
+                li.innerHTML = `
+                    <div>
+                        <strong class="teal-glow">${product.name}</strong>
+                        <div style="font-size:0.85rem; color:#94a3b8; margin-top:4px;">${product.price} • (${product.images.length} Images)</div>
+                    </div>
+                    <button class="delete-btn neon-red" onclick="removeProduct(${product.id})">Remove</button>
+                `;
+                list.appendChild(li);
+                cursor.continue();
+            }
+        };
+    }
+
+    // 3. Save new item directly into the shared workspace
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const img1String = await getBase64Text('prod-file1');
+        const img2String = await getBase64Text('prod-file2');
+
+        if (!img1String) {
+            alert("Please select at least a primary product image.");
+            return;
+        }
+
+        const imgs = [];
+        imgs.push(img1String);
+        if(img2String) imgs.push(img2String);
+
+        const item = {
+            name: document.getElementById('prod-name').value,
+            price: document.getElementById('prod-price').value,
+            images: imgs,
+            desc: document.getElementById('prod-desc').value
+        };
+
+        const transaction = db.transaction(["inventory"], "readwrite");
+        const store = transaction.objectStore("inventory");
+        
+        store.add(item).onsuccess = function() {
+            form.reset();
+            document.getElementById('prev1').style.display = 'none';
+            document.getElementById('prev2').style.display = 'none';
+            renderAdminList();
+            alert("Product added successfully!");
+        };
+    });
+
+    window.removeProduct = function(id) {
+        if (confirm("Are you sure you want to remove this item?")) {
+            const transaction = db.transaction(["inventory"], "readwrite");
+            const store = transaction.objectStore("inventory");
+            store.delete(id).onsuccess = function() {
+                renderAdminList();
+            };
+        }
+    }
+</script>
+</body>
+</html>

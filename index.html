@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AMS Pharmacy</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- FontAwesome for Social Media Icons & Sun/Moon Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <canvas id="capsule-canvas"></canvas>
+
+    <!-- Header Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <!-- Clicking the letter 'A' 3 times opens your hidden stock page -->
+            <a href="#" class="logo" id="secret-trigger">AMS <span class="teal-glow">Pharmacy</span></a>
+            <p class="tagline">Premium Pharma & Cosmetics</p>
+            
+            <!-- Dark / Light Mode Toggle Button -->
+            <button id="theme-toggle" class="theme-toggle-btn" onclick="toggleTheme()">
+                <i class="fas fa-moon" id="theme-icon"></i>
+                <span id="theme-text">Dark</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Main Content Grid -->
+    <main class="container">
+        <div id="product-grid" class="product-grid">
+            <!-- Generated dynamically by JS -->
+        </div>
+    </main>
+
+    <!-- Glowing Social Footer -->
+    <footer class="social-footer">
+        <h3>Connect With Us</h3>
+        <div class="social-icons">
+            <a href="https://www.tiktok.com/@ams_pharmacy" target="_blank" class="icon tiktok" title="TikTok"><i class="fab fa-tiktok"></i></a>
+            <a href="https://www.instagram.com/ams_pharmacy" target="_blank" class="icon instagram" title="Instagram"><i class="fab fa-instagram"></i></a>
+            <a href="https://www.facebook.com/ams_pharmacy" target="_blank" class="icon facebook" title="Facebook"><i class="fab fa-facebook-f"></i></a>
+        </div>
+        <p>&copy; 2026 AMS Pharmacy. All Rights Reserved.</p>
+    </footer>
+
+    <script>
+    // Theme Switcher Logic
+    function applyTheme(theme) {
+        const icon = document.getElementById('theme-icon');
+        const text = document.getElementById('theme-text');
+        
+        if (theme === 'light') {
+            document.body.classList.add('light-mode');
+            icon.className = 'fas fa-sun';
+            text.textContent = 'Light';
+        } else {
+            document.body.classList.remove('light-mode');
+            icon.className = 'fas fa-moon';
+            text.textContent = 'Dark';
+        }
+    }
+
+    function toggleTheme() {
+        const isLight = document.body.classList.contains('light-mode');
+        const newTheme = isLight ? 'dark' : 'light';
+        localStorage.setItem('ams_theme', newTheme);
+        applyTheme(newTheme);
+    }
+
+    // Load theme on startup
+    const savedTheme = localStorage.getItem('ams_theme') || 'dark';
+    applyTheme(savedTheme);
+
+    const grid = document.getElementById('product-grid');
+
+    // 1. Connect to the shared database
+    const dbRequest = indexedDB.open("AMSPharmacyDB", 1);
+    let db;
+
+    dbRequest.onupgradeneeded = function(e) {
+        db = e.target.result;
+        if (!db.objectStoreNames.contains("inventory")) {
+            db.createObjectStore("inventory", { keyPath: "id", autoIncrement: true });
+        }
+    };
+
+    dbRequest.onsuccess = function(e) {
+        db = e.target.result;
+        loadLiveCatalog();
+    };
+
+    // 2. Read data instantly from the dashboard database
+    function loadLiveCatalog() {
+        if (!db) return;
+        grid.innerHTML = '';
+        
+        const transaction = db.transaction(["inventory"], "readonly");
+        const store = transaction.objectStore("inventory");
+        const products = [];
+
+        store.openCursor().onsuccess = function(event) {
+            const cursor = event.target.result;
+            if (cursor) {
+                products.push(cursor.value);
+                cursor.continue();
+            } else {
+                if(products.length === 0) {
+                    grid.innerHTML = `
+                        <div style="grid-column: 1/-1; text-align:center; color: #94a3b8; margin: 4rem 0;">
+                            <p>No products in stock yet. Go to your dashboard to add items.</p>
+                        </div>
+                    `;
+                    return;
+                }
+                renderStore(products);
+            }
+        };
+    }
+
+    function renderStore(products) {
+        grid.innerHTML = '';
+        if(products.length === 0) {
+            grid.innerHTML = `<p class="tagline" style="grid-column:1/-1; text-align:center;">No stock entries found.</p>`;
+            return;
+        }
+
+        products.forEach(product => {
+            const card = document.createElement('div');
+            card.className = 'product-card';
+            card.setAttribute('onclick', `window.open('product.html?id=${product.id}', '_blank')`);
+            card.style.cursor = "pointer";
+            
+            let imageElements = product.images.map((img, idx) => `
+                <img src="${img}" class="slide-${product.id} ${idx === 0 ? 'active' : ''}" alt="${product.name}">
+            `).join('');
+
+            let dotElements = product.images.map((_, idx) => `
+                <span class="dot dot-${product.id} ${idx === 0 ? 'active' : ''}" onclick="event.stopPropagation(); changeImage(${product.id}, ${idx})"></span>
+            `).join('');
+
+            card.innerHTML = `
+                <div class="image-viewer">
+                    ${imageElements}
+                    <div class="slider-dots">${dotElements}</div>
+                </div>
+                <div class="card-content">
+                    <div class="teal-line"></div>
+                    <h3>${product.name}</h3>
+                    <div class="price">${product.price}</div>
+                    <div class="tap-hint" style="margin-top:1rem; font-size:0.8rem; color:#00f2fe;">Click to see full view & specifications →</div>
+                </div>
+            `;
+            grid.appendChild(card);
+        });
+    }
+
+    window.changeImage = function(productId, targetIdx) {
+        const slides = document.querySelectorAll(`.slide-${productId}`);
+        const dots = document.querySelectorAll(`.dot-${productId}`);
+        slides.forEach(img => img.classList.remove('active'));
+        dots.forEach(dot => dot.classList.remove('active'));
+        slides[targetIdx].classList.add('active');
+        dots[targetIdx].classList.add('active');
+    }
+
+    // Secret dashboard access click trigger
+    let clickCount = 0;
+    document.getElementById('secret-trigger').addEventListener('click', (e) => {
+        e.preventDefault();
+        clickCount++;
+        if(clickCount >= 3) {
+            window.location.href = 'dashboard.html';
+        }
+        setTimeout(() => { clickCount = 0; }, 2000);
+    });
+    </script>
+
+    <!-- Background Canvas Animation -->
+    <script>
+    const canvas = document.getElementById('capsule-canvas');
+    const ctx = canvas.getContext('2d');
+
+    let width, height;
+    function resize() {
+        width = canvas.width = window.innerWidth;
+        height = canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    const mouse = { x: -1000, y: -1000, radius: 150 };
+    window.addEventListener('mousemove', (e) => {
+        mouse.x = e.clientX;
+        mouse.y = e.clientY;
+    });
+    window.addEventListener('mouseleave', () => {
+        mouse.x = -1000;
+        mouse.y = -1000;
+    });
+
+    class Capsule {
+        constructor(letter) {
+            this.letter = letter;
+            this.reset(true);
+        }
+
+        reset(initial = false) {
+            this.x = Math.random() * width;
+            this.y = initial ? Math.random() * height : height + 60;
+            this.vx = (Math.random() - 0.5) * 0.6;
+            this.vy = -(Math.random() * 0.8 + 0.4);
+            this.size = Math.random() * 15 + 25;
+            this.length = this.size * 2.2;
+            this.angle = (Math.random() - 0.5) * Math.PI;
+            this.rotationSpeed = (Math.random() - 0.5) * 0.015;
+            this.opacity = Math.random() * 0.45 + 0.4;
+        }
+
+        update() {
+            this.x += this.vx;
+            this.y += this.vy;
+            this.angle += this.rotationSpeed;
+
+            const dx = mouse.x - this.x;
+            const dy = mouse.y - this.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            
+            if (dist < mouse.radius) {
+                const force = (mouse.radius - dist) / mouse.radius;
+                this.x -= (dx / dist) * force * 3;
+                this.y -= (dy / dist) * force * 3;
+            }
+
+            if (this.y < -80 || this.x < -80 || this.x > width + 80) {
+                this.reset();
+            }
+        }
+
+        draw() {
+            ctx.save();
+            ctx.translate(this.x, this.y);
+            ctx.rotate(this.angle);
+            ctx.globalAlpha = this.opacity;
+
+            const w = this.length;
+            const h = this.size;
+            const r = h / 2;
+
+            ctx.beginPath();
+            ctx.arc(-w/2 + r, 0, r, Math.PI / 2, (3 * Math.PI) / 2);
+            ctx.lineTo(0, -r);
+            ctx.lineTo(0, r);
+            ctx.closePath();
+            ctx.fillStyle = '#00f2fe';
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.arc(w/2 - r, 0, r, -Math.PI / 2, Math.PI / 2);
+            ctx.lineTo(0, r);
+            ctx.lineTo(0, -r);
+            ctx.closePath();
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.arc(-w/2 + r, 0, r, Math.PI / 2, (3 * Math.PI) / 2);
+            ctx.arc(w/2 - r, 0, r, -Math.PI / 2, Math.PI / 2);
+            ctx.closePath();
+            ctx.strokeStyle = 'rgba(0, 242, 254, 0.4)';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            ctx.fillStyle = '#ffffff';
+            ctx.font = `bold ${h * 0.75}px sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.shadowColor = '#00f2fe';
+            ctx.shadowBlur = 8;
+            ctx.fillText(this.letter, 0, 0);
+
+            ctx.restore();
+        }
+    }
+
+    const letters = ['A', 'M', 'S'];
+    const capsules = [];
+    const TOTAL_CAPSULES = 24;
+
+    for (let i = 0; i < TOTAL_CAPSULES; i++) {
+        capsules.push(new Capsule(letters[i % letters.length]));
+    }
+
+    function animate() {
+        ctx.clearRect(0, 0, width, height);
+        capsules.forEach(capsule => {
+            capsule.update();
+            capsule.draw();
+        });
+        requestAnimationFrame(animate);
+    }
+
+    animate();
+    </script>
+</body>
+</html>
