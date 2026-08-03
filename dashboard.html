@@ -4,8 +4,46 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AMS Pharmacy - Admin Dashboard</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=1.1">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .thumb-preview-container {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 8px;
+            margin-bottom: 12px;
+        }
+        .thumb-wrapper {
+            position: relative;
+            width: 70px;
+            height: 70px;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid rgba(0, 242, 254, 0.4);
+        }
+        .thumb-wrapper img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .thumb-delete-btn {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            background: #ef4444;
+            color: #fff;
+            border: none;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 0.7rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
 </head>
 <body style="padding: 2rem 1rem;">
     <div style="max-width: 900px; margin: 0 auto; color: #fff;">
@@ -62,9 +100,9 @@
         </div>
     </div>
 
-    <!-- Edit Modal -->
-    <div id="edit-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); backdrop-filter: blur(5px); z-index: 9999; justify-content: center; align-items: center;">
-        <div style="background: #0f172a; border: 1px solid #00f2fe; padding: 2rem; border-radius: 12px; width: 90%; max-width: 500px; color: #fff; box-shadow: 0 0 25px rgba(0,242,254,0.3);">
+    <!-- Edit Modal with Image Management -->
+    <div id="edit-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); backdrop-filter: blur(5px); z-index: 9999; justify-content: center; align-items: center; overflow-y: auto; padding: 1rem 0;">
+        <div style="background: #0f172a; border: 1px solid #00f2fe; padding: 2rem; border-radius: 12px; width: 90%; max-width: 550px; color: #fff; box-shadow: 0 0 25px rgba(0,242,254,0.3); max-height: 90vh; overflow-y: auto;">
             <h3 style="color: #00f2fe; margin-top: 0;">Edit Product / تعديل المنتج</h3>
             <input type="hidden" id="edit-product-id">
             
@@ -89,9 +127,18 @@
                 </select>
             </div>
 
-            <div style="margin-bottom: 1.5rem;">
+            <div style="margin-bottom: 1rem;">
                 <label>Specifications & Description:</label>
-                <textarea id="edit-desc" rows="4" style="width: 100%; padding: 0.6rem; margin-top: 0.4rem; background: rgba(255,255,255,0.05); border: 1px solid #00f2fe; color: #fff; border-radius: 6px;"></textarea>
+                <textarea id="edit-desc" rows="3" style="width: 100%; padding: 0.6rem; margin-top: 0.4rem; background: rgba(255,255,255,0.05); border: 1px solid #00f2fe; color: #fff; border-radius: 6px;"></textarea>
+            </div>
+
+            <!-- Current Images & Image Upload Section -->
+            <div style="margin-bottom: 1.5rem; border-top: 1px solid rgba(0,242,254,0.2); padding-top: 1rem;">
+                <label style="color: #00f2fe; font-weight: bold;">Current Images (Click ✕ to remove):</label>
+                <div id="edit-images-preview" class="thumb-preview-container"></div>
+
+                <label style="display: block; margin-top: 10px;">Add New Images (Optional):</label>
+                <input type="file" id="edit-new-images" accept="image/*" multiple style="width: 100%; margin-top: 0.4rem; color: #94a3b8;">
             </div>
 
             <div style="display: flex; gap: 10px; justify-content: flex-end;">
@@ -104,6 +151,7 @@
     <script>
     const dbRequest = indexedDB.open("AMSPharmacyDB", 1);
     let db;
+    let currentEditImages = []; // Stores existing base64 images while editing
 
     dbRequest.onupgradeneeded = function(e) {
         db = e.target.result;
@@ -166,7 +214,6 @@
         });
     }
 
-    // Convert uploaded image files to Base64 strings
     function convertFilesToBase64(files) {
         return Promise.all(Array.from(files).map(file => {
             return new Promise((resolve, reject) => {
@@ -181,7 +228,6 @@
     // Add Product Form Handler
     document.getElementById('add-product-form').addEventListener('submit', async function(e) {
         e.preventDefault();
-        
         const files = document.getElementById('product-images').files;
         if(files.length === 0) return;
 
@@ -205,7 +251,7 @@
         };
     });
 
-    // Modal Edit Functions
+    // Open Modal & Load Images
     function openEditModal(id) {
         const transaction = db.transaction(["inventory"], "readonly");
         const store = transaction.objectStore("inventory");
@@ -219,17 +265,60 @@
                 document.getElementById('edit-price').value = product.price;
                 document.getElementById('edit-category').value = product.category || 'Pharma';
                 document.getElementById('edit-desc').value = product.description || '';
+                
+                currentEditImages = product.images ? [...product.images] : [];
+                renderEditImagePreviews();
+
+                document.getElementById('edit-new-images').value = '';
                 document.getElementById('edit-modal').style.display = 'flex';
             }
         };
+    }
+
+    function renderEditImagePreviews() {
+        const previewBox = document.getElementById('edit-images-preview');
+        previewBox.innerHTML = '';
+
+        if(currentEditImages.length === 0) {
+            previewBox.innerHTML = `<span style="font-size:0.8rem; color:#ef4444;">No images attached. Please upload at least one image.</span>`;
+            return;
+        }
+
+        currentEditImages.forEach((imgBase64, idx) => {
+            const wrap = document.createElement('div');
+            wrap.className = 'thumb-wrapper';
+            wrap.innerHTML = `
+                <img src="${imgBase64}" alt="thumb">
+                <button type="button" class="thumb-delete-btn" onclick="removeImageFromEdit(${idx})" title="Remove image">✕</button>
+            `;
+            previewBox.appendChild(wrap);
+        });
+    }
+
+    function removeImageFromEdit(index) {
+        currentEditImages.splice(index, 1);
+        renderEditImagePreviews();
     }
 
     function closeEditModal() {
         document.getElementById('edit-modal').style.display = 'none';
     }
 
-    function saveProductChanges() {
+    async function saveProductChanges() {
         const id = parseInt(document.getElementById('edit-product-id').value);
+        const newFiles = document.getElementById('edit-new-images').files;
+
+        // Convert any freshly uploaded files to base64
+        if(newFiles.length > 0) {
+            const newBase64Images = await convertFilesToBase64(newFiles);
+            currentEditImages = [...currentEditImages, ...newBase64Images];
+        }
+
+        if(currentEditImages.length === 0) {
+            alert("Please keep or add at least one image for the product.");
+            return;
+        }
+
         const transaction = db.transaction(["inventory"], "readwrite");
         const store = transaction.objectStore("inventory");
         const request = store.get(id);
@@ -241,6 +330,7 @@
                 existingData.price = document.getElementById('edit-price').value;
                 existingData.category = document.getElementById('edit-category').value;
                 existingData.description = document.getElementById('edit-desc').value;
+                existingData.images = currentEditImages; // Save updated image array
 
                 store.put(existingData).onsuccess = function() {
                     closeEditModal();
