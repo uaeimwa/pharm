@@ -1,179 +1,220 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AMS Pharmacy - Product Details</title>
-    <!-- Linking your existing style sheet to maintain the clean, dark neon theme -->
-    <link rel="stylesheet" href="style.css">
+    <title>تفاصيل المنتج - AMS Pharmacy</title>
+    <link rel="stylesheet" href="style.css?v=1.1">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        .detail-container {
-            max-width: 1100px;
-            margin: 4rem auto;
-            padding: 2rem;
+        .product-detail-container {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 4rem;
+            gap: 2.5rem;
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 2rem;
+            backdrop-filter: blur(10px);
+            margin-top: 2rem;
         }
-        @media (max-width: 768px) {
-            .detail-container { grid-template-columns: 1fr; gap: 2rem; margin: 1rem auto; }
-        }
-        .product-gallery {
-            position: relative;
-            background: rgba(255,255,255,0.02);
-            border: 1px solid rgba(255,255,255,0.05);
+
+        .main-image-box {
+            width: 100%;
+            height: 380px;
             border-radius: 12px;
             overflow: hidden;
+            border: 1px solid var(--card-border);
+            margin-bottom: 1rem;
+        }
+
+        .main-image-box img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .thumbnails-row {
             display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 400px;
+            gap: 10px;
+            overflow-x: auto;
         }
-        .product-gallery img {
-            max-width: 100%;
-            max-height: 500px;
-            object-fit: contain;
-            display: none;
-        }
-        .product-gallery img.active {
-            display: block;
-        }
-        .gallery-thumbs {
-            display: flex;
-            gap: 1rem;
-            margin-top: 1rem;
-        }
-        .thumb {
+
+        .thumbnail {
             width: 70px;
             height: 70px;
-            border: 2px solid transparent;
-            border-radius: 6px;
+            border-radius: 8px;
             cursor: pointer;
             object-fit: cover;
-            background: rgba(255,255,255,0.05);
-            opacity: 0.6;
+            border: 2px solid transparent;
+            opacity: 0.7;
+            transition: all 0.3s ease;
         }
-        .thumb.active {
-            border-color: #00f2fe;
+
+        .thumbnail.active, .thumbnail:hover {
+            border-color: var(--accent-color);
             opacity: 1;
         }
-        .info-panel h1 {
-            font-size: 2.5rem;
+
+        .badge-cat {
+            display: inline-block;
+            background: rgba(0, 242, 254, 0.15);
+            color: var(--accent-color);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+        }
+
+        .product-title {
+            font-size: 2rem;
+            color: var(--text-primary);
             margin-bottom: 0.5rem;
         }
-        .detail-price {
+
+        .product-price-tag {
             font-size: 1.8rem;
-            font-weight: 700;
-            color: #00f2fe;
-            text-shadow: 0 0 10px rgba(0, 242, 254, 0.3);
-            margin-bottom: 2rem;
+            font-weight: 800;
+            color: var(--accent-color);
+            margin-bottom: 1.5rem;
         }
-        .full-desc {
-            color: #94a3b8;
+
+        .specs-box {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--card-border);
+            border-radius: 10px;
+            padding: 1.2rem;
+            margin-top: 1rem;
+            color: var(--text-primary);
             line-height: 1.8;
-            font-size: 1.1rem;
-            white-space: pre-wrap; /* Keeps your paragraphs and spacing intact */
-            border-top: 1px solid rgba(255,255,255,0.08);
-            padding-top: 1.5rem;
+            white-space: pre-line;
+            font-size: 0.95rem;
         }
-        .back-link {
-            display: inline-block;
-            margin-bottom: 2rem;
-            color: #94a3b8;
-            text-decoration: none;
-            transition: color 0.2s;
+
+        @media (max-width: 768px) {
+            .product-detail-container {
+                grid-template-columns: 1fr;
+            }
         }
-        .back-link:hover { color: #00f2fe; }
     </style>
 </head>
 <body>
+    <canvas id="capsule-canvas"></canvas>
 
-    <div class="detail-container">
-        <!-- Left Side: Image Gallery -->
-        <div>
-            <a href="index.html" class="back-link">← Back to Catalog</a>
-            <div class="product-gallery" id="main-gallery">
-                <!-- Images will load here dynamically -->
-            </div>
-            <div class="gallery-thumbs" id="thumb-bar">
-                <!-- Thumbnails will load here dynamically -->
-            </div>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="logo">AMS <span class="teal-glow">Pharmacy</span></a>
+            <button id="theme-toggle" class="theme-toggle-btn" onclick="toggleTheme()">
+                <i class="fas fa-moon" id="theme-icon"></i>
+                <span id="theme-text">Dark</span>
+            </button>
         </div>
+    </nav>
 
-        <!-- Right Side: Detailed Specifications -->
-        <div class="info-panel" style="margin-top: 2.5rem;">
-            <div class="teal-line" style="width: 60px; height: 4px; background: #00f2fe; margin-bottom: 1rem;"></div>
-            <h1 id="det-name" class="teal-glow">Loading Product...</h1>
-            <div id="det-price" class="detail-price">-- DZD</div>
-            <div id="det-desc" class="full-desc">Please wait while details are retrieved...</div>
+    <!-- Main Content -->
+    <main class="container">
+        <a href="index.html" style="color: var(--accent-color); text-decoration: none; font-weight: bold;">
+            ← العودة للمتجر / Back to Catalog
+        </a>
+
+        <div id="product-details" class="product-detail-container">
+            <p style="color: var(--text-secondary);">جاري تحميل تفاصيل المنتج...</p>
         </div>
-    </div>
+    </main>
 
     <script>
-        // Connect to database to fetch the clicked item
-        const dbRequest = indexedDB.open("AMSPharmacyDB", 1);
-        
-        dbRequest.onsuccess = function(e) {
-            const db = e.target.result;
-            
-            // Extract the product ID from the website link address bar URL
-            const urlParams = new URLSearchParams(window.location.search);
-            const productId = parseInt(urlParams.get('id'));
-
-            if (!productId) {
-                document.getElementById('det-name').textContent = "Product Not Found";
-                return;
-            }
-
-            const transaction = db.transaction(["inventory"], "readonly");
-            const store = transaction.objectStore("inventory");
-            const getRequest = store.get(productId);
-
-            getRequest.onsuccess = function(event) {
-                const product = event.target.result;
-                if (product) {
-                    // Populate Text Contents
-                    document.getElementById('det-name').textContent = product.name;
-                    document.getElementById('det-price').textContent = product.price;
-                    document.getElementById('det-desc').textContent = product.desc;
-                    document.title = `${product.name} - AMS Pharmacy`;
-
-                    // Populate Gallery
-                    const gallery = document.getElementById('main-gallery');
-                    const thumbBar = document.getElementById('thumb-bar');
-
-                    product.images.forEach((imgSrc, idx) => {
-                        // Create main images
-                        const img = document.createElement('img');
-                        img.src = imgSrc;
-                        img.className = `view-slide ${idx === 0 ? 'active' : ''}`;
-                        img.id = `slide-${idx}`;
-                        gallery.appendChild(img);
-
-                        // Create smaller thumbnail navigation boxes below it
-                        if(product.images.length > 1) {
-                            const thumb = document.createElement('img');
-                            thumb.src = imgSrc;
-                            thumb.className = `thumb ${idx === 0 ? 'active' : ''}`;
-                            thumb.onclick = () => switchGalleryImage(idx);
-                            thumbBar.appendChild(thumb);
-                        }
-                    });
-                } else {
-                    document.getElementById('det-name').textContent = "Product item no longer exists.";
-                }
-            };
-        };
-
-        function switchGalleryImage(targetIdx) {
-            document.querySelectorAll('.view-slide').forEach(img => img.classList.remove('active'));
-            document.querySelectorAll('.thumb').forEach(t => t.classList.remove('active'));
-
-            document.getElementById(`slide-${targetIdx}`).classList.add('active');
-            if(document.querySelectorAll('.thumb')[targetIdx]) {
-                document.querySelectorAll('.thumb')[targetIdx].classList.add('active');
-            }
+    // 1. Theme Manager
+    function applyTheme(theme) {
+        const icon = document.getElementById('theme-icon');
+        const text = document.getElementById('theme-text');
+        if (theme === 'light') {
+            document.body.classList.add('light-mode');
+            if(icon) icon.className = 'fas fa-sun';
+            if(text) text.textContent = 'Light';
+        } else {
+            document.body.classList.remove('light-mode');
+            if(icon) icon.className = 'fas fa-moon';
+            if(text) text.textContent = 'Dark';
         }
+    }
+    function toggleTheme() {
+        const isLight = document.body.classList.contains('light-mode');
+        const newTheme = isLight ? 'dark' : 'light';
+        localStorage.setItem('ams_theme', newTheme);
+        applyTheme(newTheme);
+    }
+    applyTheme(localStorage.getItem('ams_theme') || 'dark');
+
+    // 2. Fetch Product ID from URL (?id=X)
+    const urlParams = new URLSearchParams(window.location.search);
+    const productId = parseInt(urlParams.get('id'));
+
+    // 3. Connect to IndexedDB & Load Product
+    const dbRequest = indexedDB.open("AMSPharmacyDB", 1);
+
+    dbRequest.onsuccess = function(e) {
+        const db = e.target.result;
+        const transaction = db.transaction(["inventory"], "readonly");
+        const store = transaction.objectStore("inventory");
+        const request = store.get(productId);
+
+        request.onsuccess = function() {
+            const product = request.result;
+            const container = document.getElementById('product-details');
+
+            if (product) {
+                const mainImg = (product.images && product.images.length > 0) ? product.images[0] : '';
+                
+                const thumbnailsHTML = (product.images || []).map((img, idx) => `
+                    <img src="${img}" class="thumbnail ${idx === 0 ? 'active' : ''}" onclick="switchMainImage('${img}', this)" alt="thumb">
+                `).join('');
+
+                // فحص جميع الاحتمالات للوصف والمواصفات
+                const specsText = product.description || product.specs || product.details || "لا توجد مواصفات إضافية مكتوبة لهذا المنتج حالياً.";
+
+                container.innerHTML = `
+                    <!-- الصور -->
+                    <div>
+                        <div class="main-image-box">
+                            <img id="current-main-img" src="${mainImg}" alt="${product.name}">
+                        </div>
+                        <div class="thumbnails-row">
+                            ${thumbnailsHTML}
+                        </div>
+                    </div>
+
+                    <!-- معلومات المنتج والمواصفات -->
+                    <div>
+                        <span class="badge-cat">${product.category || 'Pharma'}</span>
+                        <h1 class="product-title">${product.name}</h1>
+                        <div class="product-price-tag">${product.price}</div>
+                        
+                        <h3 style="color: var(--accent-color); margin-top: 1.5rem; margin-bottom: 0.5rem;">
+                            المواصفات والتفاصيل / Specifications:
+                        </h3>
+                        <div class="specs-box">
+                            ${specsText}
+                        </div>
+                    </div>
+                `;
+            } else {
+                container.innerHTML = `
+                    <div style="grid-column: 1/-1; text-align: center; color: #ef4444;">
+                        <h2>المنتج غير موجود / Product Not Found</h2>
+                    </div>
+                `;
+            }
+        };
+    };
+
+    function switchMainImage(src, element) {
+        document.getElementById('current-main-img').src = src;
+        document.querySelectorAll('.thumbnail').forEach(el => el.classList.remove('active'));
+        element.classList.add('active');
+    }
     </script>
 </body>
+</html>
 </html>
