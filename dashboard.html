@@ -350,5 +350,109 @@
         }
     }
     </script>
+    <!-- مكتبات Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
+<script>
+// تهيئة Firebase
+const firebaseConfig = {
+  apiKey: "AIzaSyCsAxSL_6n-L4J2I3XCupS9K7Z_u3dFf-N",
+  authDomain: "ams-pharmacy.firebaseapp.com",
+  projectId: "ams-pharmacy",
+  storageBucket: "ams-pharmacy.firebasestorage.app",
+  messagingSenderId: "989475311469",
+  appId: "1:989475311469:web:969dc1bb43da869739b464",
+  measurementId: "G-5LZZGHG2EP"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+// تحويل الصور إلى Base64
+function convertFilesToBase64(files) {
+    return Promise.all(Array.from(files).map(file => {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = error => reject(error);
+            reader.readAsDataURL(file);
+        });
+    }));
+}
+
+// إضافة منتج جديد إلى Firebase
+document.getElementById('add-product-form')?.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const files = document.getElementById('product-images').files;
+    if(files.length === 0) {
+        alert("يرجى اختيار صورة واحدة على الأقل!");
+        return;
+    }
+
+    const imageBase64List = await convertFilesToBase64(files);
+
+    const newProduct = {
+        name: document.getElementById('product-name').value,
+        price: document.getElementById('product-price').value,
+        category: document.getElementById('product-category').value,
+        description: document.getElementById('product-desc').value,
+        images: imageBase64List,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+
+    db.collection("inventory").add(newProduct).then(() => {
+        document.getElementById('add-product-form').reset();
+        loadInventory();
+        alert("تمت إضافة المنتج بنجاح إلى قاعدة البيانات السحابية!");
+    }).catch(err => alert("حدث خطأ أثناء الإضافة: " + err.message));
+});
+
+// عرض قائمة المنتجات في لوحة التحكم
+function loadInventory() {
+    const container = document.getElementById('inventory-list');
+    if(!container) return;
+    container.innerHTML = '<p style="color: #94a3b8;">جاري تحميل المنتجات السحابية...</p>';
+
+    db.collection("inventory").orderBy("createdAt", "desc").get().then((querySnapshot) => {
+        container.innerHTML = '';
+        if(querySnapshot.empty) {
+            container.innerHTML = '<p style="color: #94a3b8;">لا توجد منتجات مسجلة حالياً.</p>';
+            return;
+        }
+
+        querySnapshot.forEach((doc) => {
+            const product = doc.data();
+            const id = doc.id;
+
+            const itemDiv = document.createElement('div');
+            itemDiv.style.cssText = "display: flex; align-items: center; justify-content: space-between; padding: 1rem 0; border-bottom: 1px solid rgba(0,242,254,0.15);";
+            itemDiv.innerHTML = `
+                <div>
+                    <strong style="color: #00f2fe;">${product.name}</strong> 
+                    <span style="color: #94a3b8; margin-left: 8px;">(${product.price})</span>
+                </div>
+                <div>
+                    <button onclick="deleteProduct('${id}')" style="background: #ef4444; color: #fff; border: none; padding: 0.4rem 0.8rem; border-radius: 6px; cursor: pointer;">
+                        <i class="fas fa-trash"></i> حذف
+                    </button>
+                </div>
+            `;
+            container.appendChild(itemDiv);
+        });
+    });
+}
+
+// حذف منتج من Firebase
+function deleteProduct(id) {
+    if(confirm("هل أنت تأكد من حذف هذا المنتج؟")) {
+        db.collection("inventory").doc(id).delete().then(() => {
+            loadInventory();
+        });
+    }
+}
+
+document.addEventListener('DOMContentLoaded', loadInventory);
+</script>
 </body>
 </html>
