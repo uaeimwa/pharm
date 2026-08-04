@@ -186,6 +186,7 @@
             ← العودة للمتجر / Back to Catalog
         </a>
 
+        <!-- هنا سيتم عرض تفاصيل المنتج من Firebase -->
         <div id="product-details" class="product-detail-wrapper">
             <p style="color: var(--text-secondary); text-align: center;">جاري تحميل تفاصيل المنتج...</p>
         </div>
@@ -197,8 +198,13 @@
         <img id="lightbox-img" src="" alt="Zoomed Product">
     </div>
 
+    <!-- 1. مكتبات Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
+    <!-- 2. كود الاتصال بـ Firebase والتحكم بالصفحة -->
     <script>
-    // Theme Switcher
+    // Theme Switcher Logic
     function applyTheme(theme) {
         const icon = document.getElementById('theme-icon');
         const text = document.getElementById('theme-text');
@@ -220,23 +226,47 @@
     }
     applyTheme(localStorage.getItem('ams_theme') || 'dark');
 
-    // Fetch Product Data
+    // Lightbox Logic for Enlarging Images
+    function openLightbox() {
+        const currentSrc = document.getElementById('current-main-img').src;
+        if(!currentSrc) return;
+        document.getElementById('lightbox-img').src = currentSrc;
+        document.getElementById('image-lightbox').style.display = 'flex';
+    }
+
+    function closeLightbox() {
+        document.getElementById('image-lightbox').style.display = 'none';
+    }
+
+    function switchMainImage(src, element) {
+        document.getElementById('current-main-img').src = src;
+        document.querySelectorAll('.thumbnail').forEach(el => el.classList.remove('active'));
+        element.classList.add('active');
+    }
+
+    // Firebase Configuration & Fetch Product Data
+    const firebaseConfig = {
+      apiKey: "AIzaSyCsAxSL_6n-L4J2I3XCupS9K7Z_u3dFf-N",
+      authDomain: "ams-pharmacy.firebaseapp.com",
+      projectId: "ams-pharmacy",
+      storageBucket: "ams-pharmacy.firebasestorage.app",
+      messagingSenderId: "989475311469",
+      appId: "1:989475311469:web:969dc1bb43da869739b464",
+      measurementId: "G-5LZZGHG2EP"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
     const urlParams = new URLSearchParams(window.location.search);
-    const productId = parseInt(urlParams.get('id'));
+    const productId = urlParams.get('id');
 
-    const dbRequest = indexedDB.open("AMSPharmacyDB", 1);
-
-    dbRequest.onsuccess = function(e) {
-        const db = e.target.result;
-        const transaction = db.transaction(["inventory"], "readonly");
-        const store = transaction.objectStore("inventory");
-        const request = store.get(productId);
-
-        request.onsuccess = function() {
-            const product = request.result;
+    if (productId) {
+        db.collection("inventory").doc(productId).get().then((doc) => {
             const container = document.getElementById('product-details');
 
-            if (product) {
+            if (doc.exists) {
+                const product = doc.data();
                 const mainImg = (product.images && product.images.length > 0) ? product.images[0] : '';
                 
                 const thumbnailsHTML = (product.images || []).map((img, idx) => `
@@ -246,7 +276,7 @@
                 const specsText = product.description || product.specs || product.details || "لا توجد مواصفات إضافية مكتوبة لهذا المنتج حالياً.";
 
                 container.innerHTML = `
-                    <!-- 1. Name and Price ABOVE Pictures -->
+                    <!-- 1. Header Info -->
                     <div class="product-header-section">
                         <span class="badge-cat">${product.category || 'Pharma'}</span>
                         <h1 class="product-title">${product.name}</h1>
@@ -263,7 +293,7 @@
                         </div>
                     </div>
 
-                    <!-- 3. Specifications UNDER Pictures -->
+                    <!-- 3. Specifications -->
                     <div class="specs-section">
                         <h3 class="specs-title">
                             <i class="fas fa-list-check"></i> المواصفات والتفاصيل / Specifications:
@@ -280,99 +310,11 @@
                     </div>
                 `;
             }
-        };
-    };
-
-    function switchMainImage(src, element) {
-        document.getElementById('current-main-img').src = src;
-        document.querySelectorAll('.thumbnail').forEach(el => el.classList.remove('active'));
-        element.classList.add('active');
-    }
-
-    // Lightbox Logic for Enlarging Images
-    function openLightbox() {
-        const currentSrc = document.getElementById('current-main-img').src;
-        if(!currentSrc) return;
-        document.getElementById('lightbox-img').src = currentSrc;
-        document.getElementById('image-lightbox').style.display = 'flex';
-    }
-
-    function closeLightbox() {
-        document.getElementById('image-lightbox').style.display = 'none';
+        }).catch(err => {
+            console.error(err);
+            document.getElementById('product-details').innerHTML = `<h2 style="text-align:center; color:#ef4444;">حدث خطأ في تحميل المنتج</h2>`;
+        });
     }
     </script>
-    <!-- مكتبات Firebase -->
-<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
-
-<script>
-const firebaseConfig = {
-  apiKey: "AIzaSyCsAxSL_6n-L4J2I3XCupS9K7Z_u3dFf-N",
-  authDomain: "ams-pharmacy.firebaseapp.com",
-  projectId: "ams-pharmacy",
-  storageBucket: "ams-pharmacy.firebasestorage.app",
-  messagingSenderId: "989475311469",
-  appId: "1:989475311469:web:969dc1bb43da869739b464",
-  measurementId: "G-5LZZGHG2EP"
-};
-
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
-
-const urlParams = new URLSearchParams(window.location.search);
-const productId = urlParams.get('id');
-
-if (productId) {
-    db.collection("inventory").doc(productId).get().then((doc) => {
-        const container = document.getElementById('product-details');
-
-        if (doc.exists) {
-            const product = doc.data();
-            const mainImg = (product.images && product.images.length > 0) ? product.images[0] : '';
-            
-            const thumbnailsHTML = (product.images || []).map((img, idx) => `
-                <img src="${img}" class="thumbnail ${idx === 0 ? 'active' : ''}" onclick="switchMainImage('${img}', this)" alt="thumb">
-            `).join('');
-
-            const specsText = product.description || "لا توجد مواصفات إضافية مكتوبة لهذا المنتج حالياً.";
-
-            container.innerHTML = `
-                <div class="product-header-section">
-                    <span class="badge-cat">${product.category || 'Pharma'}</span>
-                    <h1 class="product-title">${product.name}</h1>
-                    <div class="product-price-tag">${product.price}</div>
-                </div>
-
-                <div class="image-gallery-section">
-                    <div class="main-image-box" onclick="openLightbox()">
-                        <img id="current-main-img" src="${mainImg}" alt="${product.name}">
-                    </div>
-                    <div class="thumbnails-row">
-                        ${thumbnailsHTML}
-                    </div>
-                </div>
-
-                <div class="specs-section">
-                    <h3 class="specs-title">
-                        <i class="fas fa-list-check"></i> التفاصيل والمواصفات:
-                    </h3>
-                    <div class="specs-box">
-                        ${specsText}
-                    </div>
-                </div>
-            `;
-        } else {
-            container.innerHTML = `<h2 style="text-align:center; color:#ef4444;">المنتج غير موجود</h2>`;
-        }
-    });
-}
-
-function switchMainImage(src, element) {
-    document.getElementById('current-main-img').src = src;
-    document.querySelectorAll('.thumbnail').forEach(el => el.classList.remove('active'));
-    element.classList.add('active');
-}
-</script>
 </body>
-</html>
 </html>
