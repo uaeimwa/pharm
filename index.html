@@ -319,5 +319,50 @@
 
     animate();
     </script>
+    <!-- مكتبات Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyCsAxSL_6n-L4J2I3XCupS9K7Z_u3dFf-N",
+  authDomain: "ams-pharmacy.firebaseapp.com",
+  projectId: "ams-pharmacy",
+  storageBucket: "ams-pharmacy.firebasestorage.app",
+  messagingSenderId: "989475311469",
+  appId: "1:989475311469:web:969dc1bb43da869739b464",
+  measurementId: "G-5LZZGHG2EP"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+// جلب المنتجات وعرضها في الرئيسية
+function displayMainProducts() {
+    const grid = document.getElementById('products-grid'); // اسم الحاوية الخاصة بك
+    if(!grid) return;
+
+    db.collection("inventory").orderBy("createdAt", "desc").get().then((querySnapshot) => {
+        grid.innerHTML = '';
+        querySnapshot.forEach((doc) => {
+            const product = doc.data();
+            const id = doc.id;
+            const mainImg = (product.images && product.images.length > 0) ? product.images[0] : '';
+
+            const card = document.createElement('div');
+            card.className = 'product-card';
+            card.innerHTML = `
+                <img src="${mainImg}" alt="${product.name}">
+                <h3>${product.name}</h3>
+                <p class="price">${product.price}</p>
+                <a href="product.html?id=${id}" class="btn">عرض التفاصيل</a>
+            `;
+            grid.appendChild(card);
+        });
+    });
+}
+
+document.addEventListener('DOMContentLoaded', displayMainProducts);
+</script>
 </body>
 </html>
