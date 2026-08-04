@@ -301,6 +301,78 @@
         document.getElementById('image-lightbox').style.display = 'none';
     }
     </script>
+    <!-- مكتبات Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyCsAxSL_6n-L4J2I3XCupS9K7Z_u3dFf-N",
+  authDomain: "ams-pharmacy.firebaseapp.com",
+  projectId: "ams-pharmacy",
+  storageBucket: "ams-pharmacy.firebasestorage.app",
+  messagingSenderId: "989475311469",
+  appId: "1:989475311469:web:969dc1bb43da869739b464",
+  measurementId: "G-5LZZGHG2EP"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+const urlParams = new URLSearchParams(window.location.search);
+const productId = urlParams.get('id');
+
+if (productId) {
+    db.collection("inventory").doc(productId).get().then((doc) => {
+        const container = document.getElementById('product-details');
+
+        if (doc.exists) {
+            const product = doc.data();
+            const mainImg = (product.images && product.images.length > 0) ? product.images[0] : '';
+            
+            const thumbnailsHTML = (product.images || []).map((img, idx) => `
+                <img src="${img}" class="thumbnail ${idx === 0 ? 'active' : ''}" onclick="switchMainImage('${img}', this)" alt="thumb">
+            `).join('');
+
+            const specsText = product.description || "لا توجد مواصفات إضافية مكتوبة لهذا المنتج حالياً.";
+
+            container.innerHTML = `
+                <div class="product-header-section">
+                    <span class="badge-cat">${product.category || 'Pharma'}</span>
+                    <h1 class="product-title">${product.name}</h1>
+                    <div class="product-price-tag">${product.price}</div>
+                </div>
+
+                <div class="image-gallery-section">
+                    <div class="main-image-box" onclick="openLightbox()">
+                        <img id="current-main-img" src="${mainImg}" alt="${product.name}">
+                    </div>
+                    <div class="thumbnails-row">
+                        ${thumbnailsHTML}
+                    </div>
+                </div>
+
+                <div class="specs-section">
+                    <h3 class="specs-title">
+                        <i class="fas fa-list-check"></i> التفاصيل والمواصفات:
+                    </h3>
+                    <div class="specs-box">
+                        ${specsText}
+                    </div>
+                </div>
+            `;
+        } else {
+            container.innerHTML = `<h2 style="text-align:center; color:#ef4444;">المنتج غير موجود</h2>`;
+        }
+    });
+}
+
+function switchMainImage(src, element) {
+    document.getElementById('current-main-img').src = src;
+    document.querySelectorAll('.thumbnail').forEach(el => el.classList.remove('active'));
+    element.classList.add('active');
+}
+</script>
 </body>
 </html>
 </html>
