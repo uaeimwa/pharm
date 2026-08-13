@@ -342,7 +342,7 @@ function displayMainProducts() {
     const grid = document.getElementById('products-grid'); // اسم الحاوية الخاصة بك
     if(!grid) return;
 
-    db.collection("inventory").orderBy("createdAt", "desc").get().then((querySnapshot) => {
+    db.collection("inventory").get().then((querySnapshot) => {
         grid.innerHTML = '';
         querySnapshot.forEach((doc) => {
             const product = doc.data();
