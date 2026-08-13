@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AMS Pharmacy - Admin Dashboard</title>
+    <link rel="stylesheet" href="style.css?v=1.1">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .thumb-preview-container {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 8px;
+            margin-bottom: 12px;
+        }
+        .thumb-wrapper {
+            position: relative;
+            width: 70px;
+            height: 70px;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid rgba(0, 242, 254, 0.4);
+        }
+        .thumb-wrapper img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .thumb-delete-btn {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            background: #ef4444;
+            color: #fff;
+            border: none;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 0.7rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body style="padding: 2rem 1rem;">
+    <div style="max-width: 900px; margin: 0 auto; color: #fff;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+            <h1 style="color: #00f2fe;">AMS Pharmacy Stock Dashboard</h1>
+            <a href="index.html" style="color: #00f2fe; text-decoration: none; border: 1px solid #00f2fe; padding: 0.5rem 1rem; border-radius: 6px;">← Back to Store</a>
+        </div>
+
+        <!-- Add New Product Card -->
+        <div style="background: rgba(15, 23, 42, 0.9); border: 1px solid rgba(0, 242, 254, 0.3); padding: 1.5rem; border-radius: 12px; margin-bottom: 2rem;">
+            <h2 style="color: #00f2fe; margin-top: 0;">Add New Product</h2>
+            <form id="add-product-form">
+                <div style="margin-bottom: 1rem;">
+                    <label>Product Name:</label>
+                    <input type="text" id="product-name" required style="width: 100%; padding: 0.8rem; margin-top: 0.3rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(0,242,254,0.3); color: #fff; border-radius: 8px;">
+                </div>
+
+                <div style="display: flex; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap;">
+                    <div style="flex: 1; min-width: 200px;">
+                        <label>Price:</label>
+                        <input type="text" id="product-price" placeholder="e.g. 1,200 DZD" required style="width: 100%; padding: 0.8rem; margin-top: 0.3rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(0,242,254,0.3); color: #fff; border-radius: 8px;">
+                    </div>
+                    
+                    <div style="flex: 1; min-width: 200px;">
+                        <label>Category:</label>
+                        <select id="product-category" required style="width: 100%; padding: 0.8rem; margin-top: 0.3rem; background: rgba(15,23,42,0.95); border: 1px solid rgba(0,242,254,0.3); color: #fff; border-radius: 8px;">
+                            <option value="Pharma">Pharma / أدوية</option>
+                            <option value="Cosmetics">Cosmetics / تجميل</option>
+                            <option value="Skin Care">Skin Care / عناية بالبشرة</option>
+                            <option value="Hair Care">Hair Care / عناية بالشعر</option>
+                            <option value="Supplements">Supplements / مكملات غذائية</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 1rem;">
+                    <label>Product Specifications & Description:</label>
+                    <textarea id="product-desc" rows="3" placeholder="Enter key features, size, dosage, or active ingredients..." style="width: 100%; padding: 0.8rem; margin-top: 0.3rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(0,242,254,0.3); color: #fff; border-radius: 8px;"></textarea>
+                </div>
+
+                <div style="margin-bottom: 1.5rem;">
+                    <label>Product Images (Upload one or multiple):</label>
+                    <input type="file" id="product-images" accept="image/*" multiple required style="width: 100%; margin-top: 0.3rem; color: #94a3b8;">
+                </div>
+
+                <button type="submit" style="width: 100%; padding: 0.8rem; background: #00f2fe; color: #0f172a; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; font-size: 1rem;">Add Product to Stock</button>
+            </form>
+        </div>
+
+        <!-- Inventory Management List -->
+        <div style="background: rgba(15, 23, 42, 0.9); border: 1px solid rgba(0, 242, 254, 0.3); padding: 1.5rem; border-radius: 12px;">
+            <h2 style="color: #00f2fe; margin-top: 0;">Current Inventory</h2>
+            <div id="inventory-list"></div>
+        </div>
+    </div>
+
+    <!-- Edit Modal with Image Management -->
+    <div id="edit-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); backdrop-filter: blur(5px); z-index: 9999; justify-content: center; align-items: center; overflow-y: auto; padding: 1rem 0;">
+        <div style="background: #0f172a; border: 1px solid #00f2fe; padding: 2rem; border-radius: 12px; width: 90%; max-width: 550px; color: #fff; box-shadow: 0 0 25px rgba(0,242,254,0.3); max-height: 90vh; overflow-y: auto;">
+            <h3 style="color: #00f2fe; margin-top: 0;">Edit Product / تعديل المنتج</h3>
+            <input type="hidden" id="edit-product-id">
+            
+            <div style="margin-bottom: 1rem;">
+                <label>Product Name:</label>
+                <input type="text" id="edit-name" style="width: 100%; padding: 0.6rem; margin-top: 0.4rem; background: rgba(255,255,255,0.05); border: 1px solid #00f2fe; color: #fff; border-radius: 6px;">
+            </div>
+
+            <div style="margin-bottom: 1rem;">
+                <label>Price:</label>
+                <input type="text" id="edit-price" style="width: 100%; padding: 0.6rem; margin-top: 0.4rem; background: rgba(255,255,255,0.05); border: 1px solid #00f2fe; color: #fff; border-radius: 6px;">
+            </div>
+
+            <div style="margin-bottom: 1rem;">
+                <label>Category:</label>
+                <select id="edit-category" style="width: 100%; padding: 0.6rem; margin-top: 0.4rem; background: rgba(15,23,42,0.95); border: 1px solid #00f2fe; color: #fff; border-radius: 6px;">
+                    <option value="Pharma">Pharma / أدوية</option>
+                    <option value="Cosmetics">Cosmetics / تجميل</option>
+                    <option value="Skin Care">Skin Care / عناية بالبشرة</option>
+                    <option value="Hair Care">Hair Care / عناية بالشعر</option>
+                    <option value="Supplements">Supplements / مكملات غذائية</option>
+                </select>
+            </div>
+
+            <div style="margin-bottom: 1rem;">
+                <label>Specifications & Description:</label>
+                <textarea id="edit-desc" rows="3" style="width: 100%; padding: 0.6rem; margin-top: 0.4rem; background: rgba(255,255,255,0.05); border: 1px solid #00f2fe; color: #fff; border-radius: 6px;"></textarea>
+            </div>
+
+            <!-- Current Images & Image Upload Section -->
+            <div style="margin-bottom: 1.5rem; border-top: 1px solid rgba(0,242,254,0.2); padding-top: 1rem;">
+                <label style="color: #00f2fe; font-weight: bold;">Current Images (Click ✕ to remove):</label>
+                <div id="edit-images-preview" class="thumb-preview-container"></div>
+
+                <label style="display: block; margin-top: 10px;">Add New Images (Optional):</label>
+                <input type="file" id="edit-new-images" accept="image/*" multiple style="width: 100%; margin-top: 0.4rem; color: #94a3b8;">
+            </div>
+
+            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                <button onclick="closeEditModal()" style="padding: 0.6rem 1.2rem; background: #64748b; color: #fff; border: none; border-radius: 6px; cursor: pointer;">Cancel</button>
+                <button onclick="saveProductChanges()" style="padding: 0.6rem 1.2rem; background: #00f2fe; color: #0f172a; font-weight: bold; border: none; border-radius: 6px; cursor: pointer;">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    const dbRequest = indexedDB.open("AMSPharmacyDB", 1);
+    let db;
+    let currentEditImages = []; // Stores existing base64 images while editing
+
+    dbRequest.onupgradeneeded = function(e) {
+        db = e.target.result;
+        if (!db.objectStoreNames.contains("inventory")) {
+            db.createObjectStore("inventory", { keyPath: "id", autoIncrement: true });
+        }
+    };
+
+    dbRequest.onsuccess = function(e) {
+        db = e.target.result;
+        loadLiveCatalog();
+    };
+
+    function loadLiveCatalog() {
+        if (!db) return;
+        const transaction = db.transaction(["inventory"], "readonly");
+        const store = transaction.objectStore("inventory");
+        const items = [];
+
+        store.openCursor().onsuccess = function(event) {
+            const cursor = event.target.result;
+            if (cursor) {
+                items.push(cursor.value);
+                cursor.continue();
+            } else {
+                renderInventoryTable(items);
+            }
+        };
+    }
+
+    function renderInventoryTable(items) {
+        const container = document.getElementById('inventory-list');
+        container.innerHTML = '';
+
+        if(items.length === 0) {
+            container.innerHTML = `<p style="color: #64748b;">No products in database.</p>`;
+            return;
+        }
+
+        items.forEach(product => {
+            const itemDiv = document.createElement('div');
+            itemDiv.style.cssText = "display: flex; align-items: center; justify-content: space-between; padding: 1rem 0; border-bottom: 1px solid rgba(0,242,254,0.15); flex-wrap: wrap; gap: 10px;";
+            
+            itemDiv.innerHTML = `
+                <div>
+                    <strong style="color: #00f2fe; font-size: 1.1rem;">${product.name}</strong> 
+                    <span style="color: #94a3b8; margin-left: 8px;">(${product.price})</span>
+                    <span style="font-size: 0.75rem; background: rgba(0,242,254,0.15); color: #00f2fe; padding: 2px 8px; border-radius: 12px; margin-left: 8px;">${product.category || 'Pharma'}</span>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                    <button onclick="openEditModal(${product.id})" style="background: #eab308; color: #0f172a; border: none; padding: 0.4rem 0.8rem; border-radius: 6px; cursor: pointer; font-weight: bold;">
+                        <i class="fas fa-edit"></i> Edit
+                    </button>
+                    <button onclick="deleteProduct(${product.id})" style="background: #ef4444; color: #fff; border: none; padding: 0.4rem 0.8rem; border-radius: 6px; cursor: pointer;">
+                        <i class="fas fa-trash"></i> Delete
+                    </button>
+                </div>
+            `;
+            container.appendChild(itemDiv);
+        });
+    }
+
+    function convertFilesToBase64(files) {
+        return Promise.all(Array.from(files).map(file => {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }));
+    }
+
+    // Add Product Form Handler
+    document.getElementById('add-product-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const files = document.getElementById('product-images').files;
+        if(files.length === 0) return;
+
+        const imageBase64List = await convertFilesToBase64(files);
+
+        const newProduct = {
+            name: document.getElementById('product-name').value,
+            price: document.getElementById('product-price').value,
+            category: document.getElementById('product-category').value,
+            description: document.getElementById('product-desc').value,
+            images: imageBase64List
+        };
+
+        const transaction = db.transaction(["inventory"], "readwrite");
+        const store = transaction.objectStore("inventory");
+        store.add(newProduct);
+
+        transaction.oncomplete = function() {
+            document.getElementById('add-product-form').reset();
+            loadLiveCatalog();
+        };
+    });
+
+    // Open Modal & Load Images
+    function openEditModal(id) {
+        const transaction = db.transaction(["inventory"], "readonly");
+        const store = transaction.objectStore("inventory");
+        const request = store.get(id);
+
+        request.onsuccess = function() {
+            const product = request.result;
+            if(product) {
+                document.getElementById('edit-product-id').value = product.id;
+                document.getElementById('edit-name').value = product.name;
+                document.getElementById('edit-price').value = product.price;
+                document.getElementById('edit-category').value = product.category || 'Pharma';
+                document.getElementById('edit-desc').value = product.description || '';
+                
+                currentEditImages = product.images ? [...product.images] : [];
+                renderEditImagePreviews();
+
+                document.getElementById('edit-new-images').value = '';
+                document.getElementById('edit-modal').style.display = 'flex';
+            }
+        };
+    }
+
+    function renderEditImagePreviews() {
+        const previewBox = document.getElementById('edit-images-preview');
+        previewBox.innerHTML = '';
+
+        if(currentEditImages.length === 0) {
+            previewBox.innerHTML = `<span style="font-size:0.8rem; color:#ef4444;">No images attached. Please upload at least one image.</span>`;
+            return;
+        }
+
+        currentEditImages.forEach((imgBase64, idx) => {
+            const wrap = document.createElement('div');
+            wrap.className = 'thumb-wrapper';
+            wrap.innerHTML = `
+                <img src="${imgBase64}" alt="thumb">
+                <button type="button" class="thumb-delete-btn" onclick="removeImageFromEdit(${idx})" title="Remove image">✕</button>
+            `;
+            previewBox.appendChild(wrap);
+        });
+    }
+
+    function removeImageFromEdit(index) {
+        currentEditImages.splice(index, 1);
+        renderEditImagePreviews();
+    }
+
+    function closeEditModal() {
+        document.getElementById('edit-modal').style.display = 'none';
+    }
+
+    async function saveProductChanges() {
+        const id = parseInt(document.getElementById('edit-product-id').value);
+        const newFiles = document.getElementById('edit-new-images').files;
+
+        // Convert any freshly uploaded files to base64
+        if(newFiles.length > 0) {
+            const newBase64Images = await convertFilesToBase64(newFiles);
+            currentEditImages = [...currentEditImages, ...newBase64Images];
+        }
+
+        if(currentEditImages.length === 0) {
+            alert("Please keep or add at least one image for the product.");
+            return;
+        }
+
+        const transaction = db.transaction(["inventory"], "readwrite");
+        const store = transaction.objectStore("inventory");
+        const request = store.get(id);
+
+        request.onsuccess = function() {
+            const existingData = request.result;
+            if(existingData) {
+                existingData.name = document.getElementById('edit-name').value;
+                existingData.price = document.getElementById('edit-price').value;
+                existingData.category = document.getElementById('edit-category').value;
+                existingData.description = document.getElementById('edit-desc').value;
+                existingData.images = currentEditImages; // Save updated image array
+
+                store.put(existingData).onsuccess = function() {
+                    closeEditModal();
+                    loadLiveCatalog();
+                };
+            }
+        };
+    }
+
+    function deleteProduct(id) {
+        if(confirm("Are you sure you want to delete this product?")) {
+            const transaction = db.transaction(["inventory"], "readwrite");
+            const store = transaction.objectStore("inventory");
+            store.delete(id).onsuccess = function() {
+                loadLiveCatalog();
+            };
+        }
+    }
+    </script>
+    <!-- مكتبات Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
+<script>
+// تهيئة Firebase
+const firebaseConfig = {
+  apiKey: "AIzaSyCsAxSL_6n-L4J2I3XCupS9K7Z_u3dFf-N",
+  authDomain: "ams-pharmacy.firebaseapp.com",
+  projectId: "ams-pharmacy",
+  storageBucket: "ams-pharmacy.firebasestorage.app",
+  messagingSenderId: "989475311469",
+  appId: "1:989475311469:web:969dc1bb43da869739b464",
+  measurementId: "G-5LZZGHG2EP"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+// تحويل الصور إلى Base64
+function convertFilesToBase64(files) {
+    return Promise.all(Array.from(files).map(file => {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = error => reject(error);
+            reader.readAsDataURL(file);
+        });
+    }));
+}
+
+// إضافة منتج جديد إلى Firebase
+document.getElementById('add-product-form')?.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const files = document.getElementById('product-images').files;
+    if(files.length === 0) {
+        alert("يرجى اختيار صورة واحدة على الأقل!");
+        return;
+    }
+
+    const imageBase64List = await convertFilesToBase64(files);
+
+    const newProduct = {
+        name: document.getElementById('product-name').value,
+        price: document.getElementById('product-price').value,
+        category: document.getElementById('product-category').value,
+        description: document.getElementById('product-desc').value,
+        images: imageBase64List,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+
+    db.collection("inventory").add(newProduct).then(() => {
+        document.getElementById('add-product-form').reset();
+        loadInventory();
+        alert("تمت إضافة المنتج بنجاح إلى قاعدة البيانات السحابية!");
+    }).catch(err => alert("حدث خطأ أثناء الإضافة: " + err.message));
+});
+
+// عرض قائمة المنتجات في لوحة التحكم
+function loadInventory() {
+    const container = document.getElementById('inventory-list');
+    if(!container) return;
+    container.innerHTML = '<p style="color: #94a3b8;">جاري تحميل المنتجات السحابية...</p>';
+
+    db.collection("inventory").orderBy("createdAt", "desc").get().then((querySnapshot) => {
+        container.innerHTML = '';
+        if(querySnapshot.empty) {
+            container.innerHTML = '<p style="color: #94a3b8;">لا توجد منتجات مسجلة حالياً.</p>';
+            return;
+        }
+
+        querySnapshot.forEach((doc) => {
+            const product = doc.data();
+            const id = doc.id;
+
+            const itemDiv = document.createElement('div');
+            itemDiv.style.cssText = "display: flex; align-items: center; justify-content: space-between; padding: 1rem 0; border-bottom: 1px solid rgba(0,242,254,0.15);";
+            itemDiv.innerHTML = `
+                <div>
+                    <strong style="color: #00f2fe;">${product.name}</strong> 
+                    <span style="color: #94a3b8; margin-left: 8px;">(${product.price})</span>
+                </div>
+                <div>
+                    <button onclick="deleteProduct('${id}')" style="background: #ef4444; color: #fff; border: none; padding: 0.4rem 0.8rem; border-radius: 6px; cursor: pointer;">
+                        <i class="fas fa-trash"></i> حذف
+                    </button>
+                </div>
+            `;
+            container.appendChild(itemDiv);
+        });
+    });
+}
+
+// حذف منتج من Firebase
+function deleteProduct(id) {
+    if(confirm("هل أنت تأكد من حذف هذا المنتج؟")) {
+        db.collection("inventory").doc(id).delete().then(() => {
+            loadInventory();
+        });
+    }
+}
+
+document.addEventListener('DOMContentLoaded', loadInventory);
+</script>
+</body>
+</html>

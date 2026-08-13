@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Capsule Photo Frame</title>
+  <style>
+    :root {
+      --bg-dark: #0d131a;
+      --accent-teal: #00bcd4;
+      --accent-glow: rgba(0, 188, 212, 0.25);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+      font-family: Arial, sans-serif;
+    }
+
+    /* Main Container */
+    .hero-container {
+      position: relative;
+      width: 90%;
+      max-width: 1200px;
+      height: 550px;
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+    }
+
+    /* Capsule Photo Frame */
+    .capsule-frame {
+      position: relative;
+      width: 480px;
+      height: 100%;
+      border-radius: 20px; /* Adjust border-radius for rounded rect or pill look */
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), 
+                  0 0 20px var(--accent-glow);
+      border: 1px solid rgba(0, 188, 212, 0.2);
+      z-index: 2;
+    }
+
+    .capsule-frame img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    /* Ambient Floating Capsules (AMS background accents) */
+    .ambient-capsule {
+      position: absolute;
+      width: 130px;
+      height: 55px;
+      border-radius: 50px;
+      border: 2px solid rgba(0, 188, 212, 0.4);
+      background: linear-gradient(135deg, rgba(0, 188, 212, 0.2), rgba(0, 150, 180, 0.05));
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: rgba(0, 188, 212, 0.8);
+      font-weight: bold;
+      font-size: 1.5rem;
+      box-shadow: inset 0 0 10px rgba(0, 188, 212, 0.2),
+                  0 0 15px rgba(0, 188, 212, 0.15);
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    /* Position & Orient Ambient Capsules */
+    .capsule-1 {
+      right: 15%;
+      top: 5%;
+      transform: rotate(-35deg);
+    }
+
+    .capsule-2 {
+      right: 10%;
+      top: 40%;
+      transform: rotate(20deg);
+    }
+
+    .capsule-3 {
+      right: 25%;
+      bottom: 25%;
+      transform: rotate(-45deg);
+    }
+
+    .capsule-4 {
+      right: 12%;
+      bottom: 5%;
+      transform: rotate(-15deg);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="hero-container">
+    
+    <!-- Photo Frame Container -->
+    <div class="capsule-frame">
+      <img src="YOUR_IMAGE_URL_HERE.jpg" alt="Product Showcase">
+    </div>
+
+    <!-- Floating Background Capsules (AMS branding style) -->
+    <div class="ambient-capsule capsule-1">A</div>
+    <div class="ambient-capsule capsule-2">S</div>
+    <div class="ambient-capsule capsule-3">M</div>
+    <div class="ambient-capsule capsule-4">M</div>
+
+  </div>
+
+</body>
+</html>
