@@ -39,7 +39,7 @@
     <!-- Main Content Grid -->
     <main class="container">
         <div id="product-grid" class="product-grid">
-            <!-- Generated dynamically by JS -->
+            <!-- Generated dynamically by JS from Firebase -->
         </div>
     </main>
 
@@ -54,9 +54,131 @@
         <p>&copy; 2026 AMS Pharmacy. All Rights Reserved.</p>
     </footer>
 
+    <!-- Canvas Animation Script -->
     <script>
-    let allProducts = [];
-    const grid = document.getElementById('product-grid');
+    const canvas = document.getElementById('capsule-canvas');
+    const ctx = canvas.getContext('2d');
+
+    let width, height;
+    function resize() {
+        width = canvas.width = window.innerWidth;
+        height = canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    const mouse = { x: -1000, y: -1000, radius: 150 };
+    window.addEventListener('mousemove', (e) => {
+        mouse.x = e.clientX;
+        mouse.y = e.clientY;
+    });
+    window.addEventListener('mouseleave', () => {
+        mouse.x = -1000;
+        mouse.y = -1000;
+    });
+
+    class Capsule {
+        constructor(letter) {
+            this.letter = letter;
+            this.reset(true);
+        }
+
+        reset(initial = false) {
+            this.x = Math.random() * width;
+            this.y = initial ? Math.random() * height : height + 60;
+            this.vx = (Math.random() - 0.5) * 0.6;
+            this.vy = -(Math.random() * 0.8 + 0.4);
+            this.size = Math.random() * 15 + 25;
+            this.length = this.size * 2.2;
+            this.angle = (Math.random() - 0.5) * Math.PI;
+            this.rotationSpeed = (Math.random() - 0.5) * 0.015;
+            this.opacity = Math.random() * 0.45 + 0.4;
+        }
+
+        update() {
+            this.x += this.vx;
+            this.y += this.vy;
+            this.angle += this.rotationSpeed;
+
+            const dx = mouse.x - this.x;
+            const dy = mouse.y - this.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            
+            if (dist < mouse.radius) {
+                const force = (mouse.radius - dist) / mouse.radius;
+                this.x -= (dx / dist) * force * 3;
+                this.y -= (dy / dist) * force * 3;
+            }
+
+            if (this.y < -80 || this.x < -80 || this.x > width + 80) {
+                this.reset();
+            }
+        }
+
+        draw() {
+            ctx.save();
+            ctx.translate(this.x, this.y);
+            ctx.rotate(this.angle);
+            ctx.globalAlpha = this.opacity;
+
+            const w = this.length;
+            const h = this.size;
+            const r = h / 2;
+
+            ctx.beginPath();
+            ctx.arc(-w/2 + r, 0, r, Math.PI / 2, (3 * Math.PI) / 2);
+            ctx.lineTo(0, -r);
+            ctx.lineTo(0, r);
+            ctx.closePath();
+            ctx.fillStyle = '#00f2fe';
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.arc(w/2 - r, 0, r, -Math.PI / 2, Math.PI / 2);
+            ctx.lineTo(0, r);
+            ctx.lineTo(0, -r);
+            ctx.closePath();
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.25)';
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.arc(-w/2 + r, 0, r, Math.PI / 2, (3 * Math.PI) / 2);
+            ctx.arc(w/2 - r, 0, r, -Math.PI / 2, Math.PI / 2);
+            ctx.closePath();
+            ctx.strokeStyle = 'rgba(0, 242, 254, 0.5)';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            ctx.fillStyle = '#ffffff';
+            ctx.font = `bold ${h * 0.75}px sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.shadowColor = '#00f2fe';
+            ctx.shadowBlur = 8;
+            ctx.fillText(this.letter, 0, 0);
+
+            ctx.restore();
+        }
+    }
+
+    const letters = ['A', 'M', 'S'];
+    const capsules = [];
+    const TOTAL_CAPSULES = 24;
+
+    for (let i = 0; i < TOTAL_CAPSULES; i++) {
+        capsules.push(new Capsule(letters[i % letters.length]));
+    }
+
+    function animate() {
+        ctx.clearRect(0, 0, width, height);
+        capsules.forEach(capsule => {
+            capsule.update();
+            capsule.draw();
+        });
+        requestAnimationFrame(animate);
+    }
+
+    animate();
 
     // Theme Switcher Logic
     function applyTheme(theme) {
@@ -84,54 +206,73 @@
     const savedTheme = localStorage.getItem('ams_theme') || 'dark';
     applyTheme(savedTheme);
 
-    // Database Connection
-    const dbRequest = indexedDB.open("AMSPharmacyDB", 1);
-    let db;
-
-    dbRequest.onupgradeneeded = function(e) {
-        db = e.target.result;
-        if (!db.objectStoreNames.contains("inventory")) {
-            db.createObjectStore("inventory", { keyPath: "id", autoIncrement: true });
+    // Secret dashboard trigger (click logo 3 times)
+    let clickCount = 0;
+    document.getElementById('secret-trigger').addEventListener('click', (e) => {
+        e.preventDefault();
+        clickCount++;
+        if(clickCount >= 3) {
+            window.location.href = 'dashboard.html';
         }
+        setTimeout(() => { clickCount = 0; }, 2000);
+    });
+    </script>
+
+    <!-- مكتبات Firebase والربط المباشر -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
+    <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyCsAxSL_6n-L4J2I3XCupS9K7Z_u3dFf-N",
+      authDomain: "ams-pharmacy.firebaseapp.com",
+      projectId: "ams-pharmacy",
+      storageBucket: "ams-pharmacy.firebasestorage.app",
+      messagingSenderId: "989475311469",
+      appId: "1:989475311469:web:969dc1bb43da869739b464",
+      measurementId: "G-5LZZGHG2EP"
     };
 
-    dbRequest.onsuccess = function(e) {
-        db = e.target.result;
-        loadLiveCatalog();
-    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
 
-    function loadLiveCatalog() {
-        if (!db) return;
-        
-        const transaction = db.transaction(["inventory"], "readonly");
-        const store = transaction.objectStore("inventory");
-        allProducts = [];
+    let allProducts = [];
 
-        store.openCursor().onsuccess = function(event) {
-            const cursor = event.target.result;
-            if (cursor) {
-                allProducts.push(cursor.value);
-                cursor.continue();
-            } else {
+    // جلب المنتجات وعرضها من Firebase
+    function displayMainProducts(categoryFilter = 'All') {
+        const grid = document.getElementById('product-grid');
+        if(!grid) return;
+
+        db.collection("inventory").get().then((querySnapshot) => {
+            allProducts = [];
+            querySnapshot.forEach((doc) => {
+                const data = doc.data();
+                allProducts.push({ id: doc.id, ...data });
+            });
+
+            if (categoryFilter === 'All') {
                 renderStore(allProducts);
+            } else {
+                const filtered = allProducts.filter(p => p.category === categoryFilter);
+                renderStore(filtered);
             }
-        };
+        }).catch(err => {
+            console.error("Firebase Error:", err);
+        });
     }
 
+    // ربط أزرار التصنيفات بـ Firebase
     function filterCategory(category, btnElement) {
         document.querySelectorAll('.cat-btn').forEach(btn => btn.classList.remove('active'));
         if (btnElement) btnElement.classList.add('active');
-
-        if (category === 'All') {
-            renderStore(allProducts);
-        } else {
-            const filtered = allProducts.filter(p => p.category === category);
-            renderStore(filtered);
-        }
+        displayMainProducts(category);
     }
 
+    // دالة رسم بطاقات المنتجات
     function renderStore(products) {
+        const grid = document.getElementById('product-grid');
         grid.innerHTML = '';
+        
         if(!products || products.length === 0) {
             grid.innerHTML = `
                 <div style="grid-column: 1/-1; text-align:center; color: #94a3b8; margin: 4rem 0;">
@@ -147,12 +288,14 @@
             card.setAttribute('onclick', `window.open('product.html?id=${product.id}', '_blank')`);
             card.style.cursor = "pointer";
             
-            let imageElements = product.images.map((img, idx) => `
+            let imagesArray = Array.isArray(product.images) ? product.images : [product.images];
+            
+            let imageElements = imagesArray.map((img, idx) => `
                 <img src="${img}" class="slide-${product.id} ${idx === 0 ? 'active' : ''}" alt="${product.name}">
             `).join('');
 
-            let dotElements = product.images.map((_, idx) => `
-                <span class="dot dot-${product.id} ${idx === 0 ? 'active' : ''}" onclick="event.stopPropagation(); changeImage(${product.id}, ${idx})"></span>
+            let dotElements = imagesArray.map((_, idx) => `
+                <span class="dot dot-${product.id} ${idx === 0 ? 'active' : ''}" onclick="event.stopPropagation(); changeImage('${product.id}', ${idx})"></span>
             `).join('');
 
             card.innerHTML = `
@@ -164,7 +307,7 @@
                     <div class="teal-line"></div>
                     <span style="font-size:0.75rem; color:#00f2fe; text-transform:uppercase; font-weight:bold;">${product.category || 'Pharma'}</span>
                     <h3 style="margin: 0.3rem 0;">${product.name}</h3>
-                    <div class="price">${product.price}</div>
+                    <div class="price">${product.price || ''}</div>
                     <div class="tap-hint" style="margin-top:0.8rem; font-size:0.8rem; color:#00f2fe;">Click to see full specifications →</div>
                 </div>
             `;
@@ -177,77 +320,13 @@
         const dots = document.querySelectorAll(`.dot-${productId}`);
         slides.forEach(img => img.classList.remove('active'));
         dots.forEach(dot => dot.classList.remove('active'));
-        slides[targetIdx].classList.add('active');
-        dots[targetIdx].classList.add('active');
+        if(slides[targetIdx]) slides[targetIdx].classList.add('active');
+        if(dots[targetIdx]) dots[targetIdx].classList.add('active');
     };
 
-    // Secret dashboard trigger (click logo 3 times)
-    let clickCount = 0;
-    document.getElementById('secret-trigger').addEventListener('click', (e) => {
-        e.preventDefault();
-        clickCount++;
-        if(clickCount >= 3) {
-            window.location.href = 'dashboard.html';
-        }
-        setTimeout(() => { clickCount = 0; }, 2000);
+    document.addEventListener('DOMContentLoaded', () => {
+        displayMainProducts('All');
     });
     </script>
-
-    <!-- Canvas Animation Script -->
-    <script>
-    const canvas = document.getElementById('capsule-canvas');
-    const ctx = canvas.getContext('2d');
-<!-- مكتبات Firebase -->
-<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
-
-<script>
-const firebaseConfig = {
-  apiKey: "AIzaSyCsAxSL_6n-L4J2I3XCupS9K7Z_u3dFf-N",
-  authDomain: "ams-pharmacy.firebaseapp.com",
-  projectId: "ams-pharmacy",
-  storageBucket: "ams-pharmacy.firebasestorage.app",
-  messagingSenderId: "989475311469",
-  appId: "1:989475311469:web:969dc1bb43da869739b464",
-  measurementId: "G-5LZZGHG2EP"
-};
-
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
-
-// جلب المنتجات وعرضها من Firebase
-function displayMainProducts(categoryFilter = 'All') {
-    const grid = document.getElementById('product-grid'); // تم تصحيح الـ ID
-    if(!grid) return;
-
-    db.collection("inventory").get().then((querySnapshot) => {
-        allProducts = [];
-        querySnapshot.forEach((doc) => {
-            const data = doc.data();
-            allProducts.push({ id: doc.id, ...data });
-        });
-
-        if (categoryFilter === 'All') {
-            renderStore(allProducts);
-        } else {
-            const filtered = allProducts.filter(p => p.category === categoryFilter);
-            renderStore(filtered);
-        }
-    }).catch(err => {
-        console.error("Firebase Error:", err);
-    });
-}
-
-// ربط الفلترة بـ Firebase
-function filterCategory(category, btnElement) {
-    document.querySelectorAll('.cat-btn').forEach(btn => btn.classList.remove('active'));
-    if (btnElement) btnElement.classList.add('active');
-    displayMainProducts(category);
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-    displayMainProducts('All');
-});
-</script>
 </body>
 </html>
