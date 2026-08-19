@@ -26,6 +26,14 @@
         </div>
     </nav>
 
+    <!-- Search Box Section -->
+    <div style="max-width: 1100px; margin: 1.5rem auto 0.5rem auto; padding: 0 1rem;">
+        <div style="position: relative; width: 100%;">
+            <input type="text" id="search-input" placeholder="Search product by name or description / ابحث عن منتج..." oninput="handleSearchAndFilter()" style="width: 100%; padding: 0.8rem 1rem 0.8rem 2.8rem; background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(0, 242, 254, 0.4); color: #fff; border-radius: 25px; font-size: 0.95rem; outline: none; backdrop-filter: blur(5px);">
+            <i class="fas fa-search" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: #00f2fe;"></i>
+        </div>
+    </div>
+
     <!-- Category Filter Bar -->
     <div class="category-bar">
         <button class="cat-btn active" onclick="filterCategory('All', this)">All / الكل</button>
@@ -34,6 +42,9 @@
         <button class="cat-btn" onclick="filterCategory('Skin Care', this)">Skin Care / بشرة</button>
         <button class="cat-btn" onclick="filterCategory('Hair Care', this)">Hair Care / شعر</button>
         <button class="cat-btn" onclick="filterCategory('Supplements', this)">Supplements / مكملات</button>
+        <button class="cat-btn" onclick="filterCategory('Mother & Baby', this)">Mother & Baby / رعاية الأم والطفل</button>
+        <button class="cat-btn" onclick="filterCategory('Orthopedic', this)">Orthopedic Shoes & Pillows / أحذية ووسائد طبية</button>
+        <button class="cat-btn" onclick="filterCategory('Medical Equipment', this)">Medical Devices & Supplies / أجهزة ومستلزمات طبية</button>
     </div>
 
     <!-- Main Content Grid -->
@@ -218,7 +229,7 @@
     });
     </script>
 
-    <!-- مكتبات Firebase والربط المباشر -->
+    <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
@@ -237,38 +248,48 @@
     const db = firebase.firestore();
 
     let allProducts = [];
+    let currentCategory = 'All';
 
-    // جلب المنتجات وعرضها من Firebase
-    function displayMainProducts(categoryFilter = 'All') {
-        const grid = document.getElementById('product-grid');
-        if(!grid) return;
-
+    // Fetch Products from Firebase
+    function fetchMainProducts() {
         db.collection("inventory").get().then((querySnapshot) => {
             allProducts = [];
             querySnapshot.forEach((doc) => {
                 const data = doc.data();
                 allProducts.push({ id: doc.id, ...data });
             });
-
-            if (categoryFilter === 'All') {
-                renderStore(allProducts);
-            } else {
-                const filtered = allProducts.filter(p => p.category === categoryFilter);
-                renderStore(filtered);
-            }
+            handleSearchAndFilter();
         }).catch(err => {
             console.error("Firebase Error:", err);
         });
     }
 
-    // ربط أزرار التصنيفات بـ Firebase
+    // Filter by Search & Category Combined
+    function handleSearchAndFilter() {
+        const searchTerm = document.getElementById('search-input').value.toLowerCase().trim();
+
+        const filtered = allProducts.filter(product => {
+            const matchesSearch = (product.name && product.name.toLowerCase().includes(searchTerm)) ||
+                                  (product.description && product.description.toLowerCase().includes(searchTerm));
+            
+            const matchesCategory = currentCategory === 'All' || product.category === currentCategory;
+
+            return matchesSearch && matchesCategory;
+        });
+
+        renderStore(filtered);
+    }
+
+    // Category Button Click Handler
     function filterCategory(category, btnElement) {
         document.querySelectorAll('.cat-btn').forEach(btn => btn.classList.remove('active'));
         if (btnElement) btnElement.classList.add('active');
-        displayMainProducts(category);
+        
+        currentCategory = category;
+        handleSearchAndFilter();
     }
 
-    // دالة رسم بطاقات المنتجات
+    // Render Store Product Cards
     function renderStore(products) {
         const grid = document.getElementById('product-grid');
         grid.innerHTML = '';
@@ -276,7 +297,7 @@
         if(!products || products.length === 0) {
             grid.innerHTML = `
                 <div style="grid-column: 1/-1; text-align:center; color: #94a3b8; margin: 4rem 0;">
-                    <p>No products available in this category.</p>
+                    <p>No products found matching your search or category.</p>
                 </div>
             `;
             return;
@@ -325,7 +346,7 @@
     };
 
     document.addEventListener('DOMContentLoaded', () => {
-        displayMainProducts('All');
+        fetchMainProducts();
     });
     </script>
 </body>
