@@ -1,13 +1,12 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AMS Pharmacy - الواجهة الرئيسية</title>
+    <title>AMS Pharmacy - Store</title>
     <link rel="stylesheet" href="style.css?v=1.1">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        /* Grid Layout for Products */
         .products-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
@@ -124,14 +123,14 @@
     <!-- Main Container -->
     <main class="container" style="position: relative; z-index: 2; margin-top: 2rem;">
         <h1 style="text-align: center; color: var(--text-primary, #fff); margin-bottom: 1rem;">
-            كتالوج المنتجات والمخزون
+            Our Products
         </h1>
 
         <!-- Grid Container Where Products Will Be Rendered -->
         <div id="products-grid" class="products-grid">
             <div style="text-align: center; grid-column: 1/-1; color: var(--accent-color, #00f2fe); padding: 3rem 0;">
                 <i class="fas fa-spinner fa-spin fa-2x"></i>
-                <p style="margin-top: 1rem;">جاري تحميل المنتجات من الستوك...</p>
+                <p style="margin-top: 1rem;">Loading inventory products...</p>
             </div>
         </div>
     </main>
@@ -222,7 +221,7 @@
 
     <!-- Main Logic Script -->
     <script>
-    // 1. Theme Switcher
+    // Theme Switcher
     function applyTheme(theme) {
         const icon = document.getElementById('theme-icon');
         const text = document.getElementById('theme-text');
@@ -244,7 +243,7 @@
     }
     applyTheme(localStorage.getItem('ams_theme') || 'dark');
 
-    // 2. Firebase Configuration
+    // Firebase Configuration
     const firebaseConfig = {
       apiKey: "AIzaSyCsAxSL_6n-L4J2I3XCupS9K7Z_u3dFf-N",
       authDomain: "ams-pharmacy.firebaseapp.com",
@@ -258,7 +257,7 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
-    // 3. Fetching Inventory Products
+    // Fetch Inventory Products from Firestore
     db.collection("inventory").get().then((querySnapshot) => {
         const productsContainer = document.getElementById('products-grid');
         
@@ -266,7 +265,7 @@
         productsContainer.innerHTML = ''; 
 
         if (querySnapshot.empty) {
-            productsContainer.innerHTML = '<p style="text-align:center; grid-column: 1/-1;">لا توجد منتجات متوفرة حالياً في الستوك.</p>';
+            productsContainer.innerHTML = '<p style="text-align:center; grid-column: 1/-1;">No products found in inventory.</p>';
             return;
         }
 
@@ -292,16 +291,16 @@
             const productCard = `
                 <div class="product-card">
                     <div class="product-image">
-                        <img src="${imgUrl}" alt="${product.name || 'منتج'}">
+                        <img src="${imgUrl}" alt="${product.name || 'Product'}">
                         <span class="stock-badge ${isAvailable ? 'in-stock' : 'out-stock'}">
-                            ${isAvailable ? 'متوفر في الستوك' : 'غير متوفر'}
+                            ${isAvailable ? 'In Stock' : 'Out of Stock'}
                         </span>
                     </div>
                     <div class="product-info">
-                        <span class="category">${product.category || 'عام'}</span>
-                        <h3>${product.name || 'منتج بدون اسم'}</h3>
+                        <span class="category">${product.category || 'General'}</span>
+                        <h3>${product.name || 'Unnamed Product'}</h3>
                         <p class="price">${product.price || ''}</p>
-                        <a href="product.html?id=${productId}" class="btn-details">عرض التفاصيل</a>
+                        <a href="product.html?id=${productId}" class="btn-details">View Details</a>
                     </div>
                 </div>
             `;
@@ -309,8 +308,8 @@
             productsContainer.innerHTML += productCard;
         });
     }).catch((error) => {
-        console.error("خطأ في جلب المنتجات من الستوك:", error);
-        document.getElementById('products-grid').innerHTML = '<p style="text-align:center; grid-column: 1/-1; color: #ef4444;">حدث خطأ أثناء تحميل البيانات من قاعدة البيانات.</p>';
+        console.error("Error fetching inventory products:", error);
+        document.getElementById('products-grid').innerHTML = '<p style="text-align:center; grid-column: 1/-1; color: #ef4444;">Failed to load products from database.</p>';
     });
     </script>
 </body>
